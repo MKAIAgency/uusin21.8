@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /tutorial
+
+Sitemap: https://mkaiagency.com/sitemap.xml
