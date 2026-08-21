@@ -5,22 +5,35 @@ import { Check, MessageCircle } from "lucide-react"
 
 export function LeadivonTrialForm() {
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState("")
   const [form, setForm] = useState({ firstName: "", businessName: "", email: "" })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const subject = `Free trial request - ${form.businessName || "New lead"}`
-    const body = [
-      `First name: ${form.firstName}`,
-      `Business name: ${form.businessName}`,
-      `Work email: ${form.email}`,
-      "",
-      "Please send Leadivon free trial credentials.",
-    ].join("\n")
-    window.location.href = `mailto:info@mkaiagency.com?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`
-    setSubmitted(true)
+    setSending(true)
+    setError("")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formType: "trial",
+          name: form.firstName,
+          businessName: form.businessName,
+          email: form.email,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Something went wrong.")
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.")
+    } finally {
+      setSending(false)
+    }
   }
 
   const field =
@@ -86,11 +99,17 @@ export function LeadivonTrialForm() {
               className={field}
             />
           </div>
+          {error ? (
+            <p className="text-sm text-red-400" role="alert">
+              {error}
+            </p>
+          ) : null}
           <button
             type="submit"
-            className="w-full rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white"
+            disabled={sending}
+            className="w-full rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Start Free Trial
+            {sending ? "Sending..." : "Start Free Trial"}
           </button>
           <div className="space-y-1 text-center">
             <p className="text-xs text-stone-300">No credit card required · Cancel any time</p>

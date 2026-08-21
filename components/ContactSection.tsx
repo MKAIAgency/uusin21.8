@@ -6,16 +6,30 @@ import { ScrollReveal } from "@/components/ScrollReveal"
 
 export function ContactSection() {
   const [submitted, setSubmitted] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [error, setError] = useState("")
   const [form, setForm] = useState({ name: "", email: "", message: "" })
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    const subject = `New inquiry from ${form.name || "website"}`
-    const body = [`Name: ${form.name}`, `Email: ${form.email}`, "", form.message].join("\n")
-    window.location.href = `mailto:info@mkaiagency.com?subject=${encodeURIComponent(
-      subject,
-    )}&body=${encodeURIComponent(body)}`
-    setSubmitted(true)
+    setSending(true)
+    setError("")
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ formType: "contact", ...form }),
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Something went wrong.")
+      }
+      setSubmitted(true)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.")
+    } finally {
+      setSending(false)
+    }
   }
 
   const field =
@@ -111,11 +125,17 @@ export function ContactSection() {
                       className={`${field} resize-none`}
                     />
                   </div>
+                  {error ? (
+                    <p className="text-sm text-red-400" role="alert">
+                      {error}
+                    </p>
+                  ) : null}
                   <button
                     type="submit"
-                    className="w-full rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white active:scale-[0.99]"
+                    disabled={sending}
+                    className="w-full rounded-full bg-stone-100 px-5 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-white active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    Send Message
+                    {sending ? "Sending..." : "Send Message"}
                   </button>
                 </form>
               )}
